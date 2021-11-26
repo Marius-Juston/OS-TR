@@ -478,21 +478,24 @@ class OSnet(nn.Module):
             else:
                 img += img_g
 
-
-
-        img = F.interpolate(img, 16)
+        img = F.interpolate(img, 16, mode='bilinear')
+        # img 8 1024 16 16
 
         img = torch.cat([img, img3], dim=1)
         img = self.decode2(img)
-        img = F.interpolate(img, 32)
+        img = F.interpolate(img, 32, mode='bilinear')
+        # img 8 512 32 32
 
         img = torch.cat([img, img2], dim=1)
         img = self.decode3(img)
-        img = F.interpolate(img, 64)
+        img = F.interpolate(img, 64, mode='bilinear')
+        # 8 256 64 64
 
         img = torch.cat([img, img1], dim=1)
         img = self.decode4(img)
-        img = F.interpolate(img, 256)
+        img = F.interpolate(img, 256, mode='bilinear')
+
+        # img 8 1 256 256
         img = torch.sigmoid(img)
         return img
 
