@@ -1,9 +1,9 @@
+import math
+
 import torch
 import torch.nn as nn
-
 from torch.nn import functional as F
-from torchvision import models
-import math
+
 
 # a = torch.randn(1, 3, 256, 256)
 
@@ -311,11 +311,14 @@ class Deep_Orientation(nn.Module):
 
         self.transition_1 = nn.Conv2d(input_channel, mid_channel, kernel_size=1, stride=1, padding=0, bias=False)
         self.transition_1_bn = nn.BatchNorm2d(input_channel)
-        self.transition_2_U = nn.Conv2d(1 + mid_channel, mid_channel // 8, kernel_size=3, stride=1, padding=1, bias=False, dilation=1)
+        self.transition_2_U = nn.Conv2d(1 + mid_channel, mid_channel // 8, kernel_size=3, stride=1, padding=1,
+                                        bias=False, dilation=1)
         self.transition_2_U_bn = nn.BatchNorm2d(1 + mid_channel)
-        self.transition_2_D = nn.Conv2d(1 + mid_channel, mid_channel // 8, kernel_size=3, stride=1, padding=1, bias=False, dilation=1)
+        self.transition_2_D = nn.Conv2d(1 + mid_channel, mid_channel // 8, kernel_size=3, stride=1, padding=1,
+                                        bias=False, dilation=1)
         self.transition_2_D_bn = nn.BatchNorm2d(1 + mid_channel)
-        self.transition_2_L = nn.Conv2d(1 + mid_channel, mid_channel // 8, kernel_size=3, stride=1, padding=1, bias=False, dilation=1)
+        self.transition_2_L = nn.Conv2d(1 + mid_channel, mid_channel // 8, kernel_size=3, stride=1, padding=1,
+                                        bias=False, dilation=1)
         self.transition_2_L_bn = nn.BatchNorm2d(1 + mid_channel)
         self.transition_2_R = nn.Conv2d(1 + mid_channel, mid_channel // 8, kernel_size=3, stride=1, padding=1,
                                         bias=False, dilation=1)
@@ -344,10 +347,11 @@ class Deep_Orientation(nn.Module):
             nn.Softmax(dim=1),
         )
 
-    def forward(self, x, stage=None):
+    def forward(self, x):
         x = F.relu(self.transition_1(self.transition_1_bn(x)))
 
-        ins_U_new, ins_D_new, ins_L_new, ins_R_new, ins_LU_new, ins_RD_new, ins_RU_new, ins_LD_new = deep_orientation_gen(x)
+        ins_U_new, ins_D_new, ins_L_new, ins_R_new, ins_LU_new, ins_RD_new, ins_RU_new, ins_LD_new = deep_orientation_gen(
+            x)
 
         ins_U_new = F.relu(self.transition_2_U(self.transition_2_U_bn(ins_U_new)))
         ins_D_new = F.relu(self.transition_2_D(self.transition_2_D_bn(ins_D_new)))
@@ -434,13 +438,13 @@ class OSnet(nn.Module):
         self.encode_texture = Deep_Orientation(2048, 2048, 512)
         self.encode_texture1 = Deep_Orientation(2048, 2048, 512)
         self.embedding = nn.Sequential(
-                nn.Conv2d(512, 1024, 1),
-                nn.BatchNorm2d(1024),
-                nn.ReLU(inplace=True),
-                nn.Conv2d(1024, 1024, 1),
-                nn.BatchNorm2d(1024),
-                nn.ReLU(inplace=True),
-                )
+            nn.Conv2d(512, 1024, 1),
+            nn.BatchNorm2d(1024),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(1024, 1024, 1),
+            nn.BatchNorm2d(1024),
+            nn.ReLU(inplace=True),
+        )
 
         self.decode2 = nn.Sequential(
             nn.Conv2d(2048, 512, 1),
@@ -460,13 +464,11 @@ class OSnet(nn.Module):
             nn.Conv2d(512, 1, 1),
         )
 
-
     def forward(self, image, patch):
         img1, img2, img3, img4 = self.encode(image)
         pat4 = self.encode1(patch)
         img4 = self.encode_texture(img4)
         pat4 = self.encode_texture1(pat4)
-
 
         for i in range(8):
             img_g = img4[:, 256 * i:256 * i + 256, :, :]
@@ -502,4 +504,3 @@ class OSnet(nn.Module):
         # img 8 1 256 256
         img = torch.sigmoid(img)
         return img
-
