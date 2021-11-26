@@ -144,7 +144,7 @@ class ResNet(nn.Module):
         return x
 
 
-def resnet50(pretrained=False, **kwargs):
+def resnet50(pretrained=False, freeze=False, **kwargs):
     """Constructs a ResNet-50 model.
 
     Args:
@@ -153,6 +153,10 @@ def resnet50(pretrained=False, **kwargs):
     model = ResNet(Bottleneck, [3, 4, 6, 3], **kwargs)
     if pretrained:
         model.load_state_dict(torch.load('utils/model/resnet50-19c8e357.pth'))
+
+    if freeze:
+        for param in model.parameters():
+            param.requires_grad = False
     return model
 
 
@@ -423,8 +427,8 @@ class encode1(nn.Module):
 class OSnet(nn.Module):
     def __init__(self):
         super().__init__()
-        self.encode = encode(model=resnet50(pretrained=True))
-        self.encode1 = encode1(model=resnet50(pretrained=True))
+        self.encode = encode(model=resnet50(pretrained=True, freeze=True))
+        self.encode1 = encode1(model=resnet50(pretrained=True, freeze=True))
         self.ca = ChannelAttention(in_planes=1024)
         # self.sa = SpatialAttention()
         self.encode_texture = Deep_Orientation(2048, 2048, 512)
