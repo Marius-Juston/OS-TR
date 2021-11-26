@@ -1,7 +1,16 @@
+import cv2
 import numpy as np
+
 # import matplotlib.pyplot as pyplot
 
 np.random.seed(1)
+
+
+def rotate_image(image, center, angle):
+    rot_mat = cv2.getRotationMatrix2D(center, angle, 1)
+    result = cv2.warpAffine(image, rot_mat, image.shape[0:2], flags=cv2.INTER_LINEAR)
+    return result
+
 
 # trans
 def generate_collages(
@@ -10,13 +19,13 @@ def generate_collages(
         anchor_points=None):
     N_textures = textures.shape[0]
     img_size = textures.shape
-    masks = generate_random_masks(img_size, segmentation_regions, anchor_points)
+    masks = generate_random_masks(textures, img_size, segmentation_regions, anchor_points)
     # mask:50*375*500*10
-    batch = sum(textures[i] * masks[:, :, i:i+1] for i in range(segmentation_regions))
+    batch = sum(textures[i] * masks[:, :, i:i + 1] for i in range(segmentation_regions))
     return batch, masks[:, :, 0]
 
 
-def generate_random_masks(img_size=(256, 256), segmentation_regions=5, points=None):
+def generate_random_masks(textures, img_size=(256, 256), segmentation_regions=5, points=None):
     xs, ys = np.meshgrid(np.arange(0, img_size[2]), np.arange(0, img_size[1]))
 
     if points is None:
@@ -28,6 +37,24 @@ def generate_random_masks(img_size=(256, 256), segmentation_regions=5, points=No
     masks_b = np.zeros((img_size[1], img_size[2], segmentation_regions), dtype=int)
     for m in range(segmentation_regions):
         masks_b[:, :, m][voronoi == m] = 1
+
+    for m in range(segmentation_regions - 1, -1, -1):
+        for i in range(np.random.randint(1, 4)):
+            r = np.random.uniform(10, 50)
+            x = np.random.uniform(0, masks_b.shape[0])
+            y = np.random.uniform(0, masks_b.shape[1])
+
+            dist_center = np.sqrt((xs - x) ** 2 + (ys - y) ** 2)
+
+            a = textures[m]
+            a = rotate_image(a, (x, y), np.random.uniform(10, 360 - 10))
+
+            mask = dist_center <= r
+
+            textures[m][mask] = a[mask]
+            masks_b[mask] = 0
+            masks_b[:, :, m][mask] = 1
+
     return masks_b
 
 # def generate_validation_collages(N=240):
