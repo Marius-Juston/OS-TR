@@ -1,15 +1,18 @@
-import torch
-import torch.utils.data
-#import torch.utils.data.Dataset as Dataset
-import torchvision.transforms as transforms
-import numpy as np
-import os
+# import torch.utils.data.Dataset as Dataset
 import glob
+import os
+
 import cv2
-import matplotlib.pyplot as plt
-# import pickle
+# import torch.utils.data.Dataset as Dataset
+import numpy as np
+import torch.utils.data
+import torch.utils.data
+from torchvision.transforms import transforms
 
 from .generate_collages import generate_collages
+
+
+# import pickle
 
 
 # np.random.seed(1)
@@ -22,20 +25,22 @@ class mydataset_embedding(torch.utils.data.Dataset):
         self.transform = transform
         self.image_path = []
         # self.dir = '/home/forrest/zhukai/dtd/images'
-        self.dir = '/media/zhukai/新加卷/texture/dtd/images'
+        # self.dir = '/media/zhukai/新加卷/texture/dtd/images'
+        self.dir = 'dtd/images'
         self.idx_to_class, self.image_path_all = self.load_path(self.dir)
         print(self.idx_to_class)
         self.texture = np.zeros((5, 256, 256, 3))
         self.test = []
         if split == 'train':
-            for i in range(5*checkpoint+5, 5*checkpoint+47):
+            for i in range(5 * checkpoint + 5, 5 * checkpoint + 47):
                 j = i % 47
                 self.image_path.append(self.image_path_all[j])
         else:
-            for i in range(5*checkpoint, 5*checkpoint+5):
+            for i in range(5 * checkpoint, 5 * checkpoint + 5):
                 self.test.append(self.idx_to_class[i])
                 self.image_path.append(self.image_path_all[i])
         self.len = len(self.image_path)
+        self.to_tensor = transforms.ToTensor()
 
     def load_path(self, path):
         image_path_all = []
@@ -69,22 +74,25 @@ class mydataset_embedding(torch.utils.data.Dataset):
             choice = np.delete(np.arange(self.len), index_new)
             class_other = np.random.choice(choice)
             query_num = np.random.randint(0, len(self.image_path[class_other]))
-            self.texture[i+1] = self.load_image(self.image_path[class_other][query_num])
+            self.texture[i + 1] = self.load_image(self.image_path[class_other][query_num])
 
         query_pic, query_target = generate_collages(self.texture)
         query_pic = query_pic.astype(np.uint8)
         if self.transform is not None:
-            query_pic1 = self.transform(query_pic)
-            support_pic1 = self.transform(support_pic)
+            # query_pic1 = self.transform(query_pic)
+            # support_pic1 = self.transform(support_pic)
+            query_pic1, query_target, support_pic1 = self.transform(query_pic, support_pic, query_target)
+        else:
+            query_pic1 = self.to_tensor(query_pic)
+            support_pic1 = self.to_tensor(support_pic)
 
-        return query_pic, support_pic, query_pic1, query_target, support_pic1, index_new+1
+        return query_pic, support_pic, query_pic1, query_target, support_pic1, index_new + 1
 
     def __len__(self):
         if self.split == 'train':
             return 5000
         else:
             return 500
-
 
 # zk = mydataset_embedding(split='test', transform=None)
 # cache_path = './1.pkl'
@@ -121,4 +129,3 @@ class mydataset_embedding(torch.utils.data.Dataset):
 #         plt.figure(2)
 #         plt.imshow(c)
 #         plt.show()
-
