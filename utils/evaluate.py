@@ -29,7 +29,8 @@ class Evaluator(object):
 
     def FBIoU(self):
         binary_hist = np.array((self.confusion_matrix[0, 0], self.confusion_matrix[0, 1:].sum(),
-                                self.confusion_matrix[1:, 0].sum(), self.confusion_matrix[1:, 1:].sum())).reshape((2, 2))
+                                self.confusion_matrix[1:, 0].sum(), self.confusion_matrix[1:, 1:].sum())).reshape(
+            (2, 2))
         MIoU = np.diag(binary_hist) / (binary_hist.sum(1) + binary_hist.sum(0) - np.diag(binary_hist))
         MIoU = np.nanmean(MIoU)
         return MIoU
@@ -53,4 +54,3 @@ class Evaluator(object):
 
     def reset(self):
         self.confusion_matrix = np.zeros((self.num_class,) * 2)
-

@@ -1,8 +1,6 @@
 import torch
-import numpy as np
-from torch import nn
 import torch.nn.functional as F
-import math
+from torch import nn
 
 
 class WeightedBCELoss(nn.Module):
