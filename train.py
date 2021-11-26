@@ -74,7 +74,7 @@ def main(seed=2018, epoches=1000):
     loader_val1 = DataLoader(data_val1, batch_size=args.test_batch_size, shuffle=False, num_workers=8, pin_memory=True)
     data_train = mydataset_embedding(split='train', transform=transform, checkpoint=args.checkname)
     # data_train = mydataset_embedding(split='train', transform=None, checkpoint=args.checkname)
-    loader_train = DataLoader(data_train, batch_size=args.train_batch_size, shuffle=True, num_workers=0,
+    loader_train = DataLoader(data_train, batch_size=args.train_batch_size, shuffle=True, num_workers=8,
                               pin_memory=True)
 
     dir_name = 'log/' + str(args.dataset_name) + '_' + str(args.model_name) + '_' + str(args.loss_name) + '_' + \
