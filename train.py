@@ -21,6 +21,7 @@ torch.cuda.set_per_process_memory_fraction(1.)
 
 
 def plot_images(writer, inputs, patch, target, scores, epoch):
+    writer: SummaryWriter
     writer.add_images('seg/inputs', torch.concat(inputs, 0), global_step=epoch)
     writer.add_images('seg/patches', torch.concat(patch, 0), global_step=epoch)
     writer.add_images('seg/target', torch.unsqueeze(torch.concat(target, 0), 1), global_step=epoch)
@@ -104,7 +105,7 @@ def main(seed=2018, epoches=1000):
     model = models[args.model_name]()
 
     model.load_state_dict(
-        torch.load('./log/dtd_dtd_weighted_bce_banded_0.001/snapshot-epoch_2021-11-26-02:09:42_texture.pth'))
+        torch.load('./log/dtd_dtd_weighted_bce_banded_0.001/snapshot-epoch_2021-11-26-13:15:14_texture.pth'))
 
     # model = torch.jit.script(model)
 
@@ -185,7 +186,8 @@ def main(seed=2018, epoches=1000):
                 logging.info(
                     'iter:' + str(iteration) + " time:" + str(run_time) + " train loss = {:02.5f}".format(losses))
 
-                writer.add_scalar('train_loss', losses, iteration)
+                writer.add_scalar('train_loss', losses, iteration, new_style=True)
+                writer.flush()
                 losses = 0
             # break
 
@@ -237,13 +239,14 @@ def main(seed=2018, epoches=1000):
                 torch.save(model.state_dict(), snapshot_path)
             logging.info('best_epoch:' + str(epoch_final))
             logging.info("{:10s} {:.3f}".format('best_IoU', IoU_final))
-            writer.add_scalar('mIoU', mIoU, epoch)
-            writer.add_scalar('FBIoU', FBIoU, epoch)
+            writer.add_scalar('mIoU', mIoU, epoch, new_style=True)
+            writer.add_scalar('FBIoU', FBIoU, epoch, new_style=True)
             writer.add_scalars('IoU', dict(zip(data_val1.test, mIoU_d)), epoch)
             plot_images(writer, inps, pats, tars, preds, epoch=epoch)
         plat_scheduler.step(mIoU)
         logging.info(f"LR: {optimizer.param_groups[0]['lr']}")
-        writer.add_scalar('params/lr', optimizer.param_groups[0]['lr'], epoch)
+        writer.add_scalar('params/lr', optimizer.param_groups[0]['lr'], epoch, new_style=True)
+        writer.flush()
         model.train()
 
     logging.info(epoch_final)
