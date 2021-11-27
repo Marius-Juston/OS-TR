@@ -9,6 +9,7 @@ import torch
 from torch import nn
 from torch.optim import Adam
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 
 from utils.data import datasets
 from utils.data.augmentation import Transformation
@@ -17,6 +18,13 @@ from utils.loss import myloss
 from utils.model import models
 
 torch.cuda.set_per_process_memory_fraction(1.)
+
+
+def plot_images(writer, inputs, patch, target, scores, epoch):
+    writer.add_images('seg/inputs', torch.concat(inputs, 0), global_step=epoch)
+    writer.add_images('seg/patches', torch.concat(patch, 0), global_step=epoch)
+    writer.add_images('seg/target', torch.unsqueeze(torch.concat(target, 0), 1), global_step=epoch)
+    writer.add_images('seg/scores', torch.unsqueeze(torch.concat(scores, 0), 1), global_step=epoch)
 
 
 def main(seed=2018, epoches=1000):
@@ -91,6 +99,8 @@ def main(seed=2018, epoches=1000):
     logging.info('dataset_name: %s, model_name: %s, loss_name: %s', args.dataset_name, args.model_name, args.loss_name)
     logging.info('test with: %s', data_val1.test)
 
+    writer = SummaryWriter(f'runs/{now_time}')
+
     model = models[args.model_name]()
 
     model.load_state_dict(
@@ -128,6 +138,7 @@ def main(seed=2018, epoches=1000):
         start = time.time()
         np.random.seed(epoch)
         for i, data in enumerate(loader_train):
+            # break
             _, _, inputs, target, patch, _ = data[0], data[1], data[2], data[3], data[4], data[5]
 
             # im = inputs[0, :, :].detach().cpu().numpy().transpose([1, 2, 0])
@@ -151,6 +162,9 @@ def main(seed=2018, epoches=1000):
                 # target = target.cuda()
                 patch = patch.cuda()
 
+            if iteration == 0:
+                writer.add_graph(model, [inputs, patch])
+
             output = model(inputs, patch)
 
             output = output.unsqueeze(1)
@@ -171,6 +185,7 @@ def main(seed=2018, epoches=1000):
                 logging.info(
                     'iter:' + str(iteration) + " time:" + str(run_time) + " train loss = {:02.5f}".format(losses))
 
+                writer.add_scalar('train_loss', losses, iteration)
                 losses = 0
             # break
 
@@ -184,6 +199,8 @@ def main(seed=2018, epoches=1000):
             evaluator.reset()
             torch.cuda.empty_cache()
             np.random.seed(2019)
+            inps, pats, tars, preds = [], [], [], []
+
             for i, data in enumerate(loader_val1):
                 _, _, inputs, target, patch, image_class = data[0], data[1], data[2], data[3], data[4], data[5]
                 inputs = inputs.float()
@@ -193,6 +210,13 @@ def main(seed=2018, epoches=1000):
                     patch = patch.cuda()
 
                 scores = model(inputs, patch)
+
+                if i < 3:
+                    inps.append(inputs)
+                    pats.append(patch)
+                    tars.append(target)
+                    preds.append(scores[:, 0, :, :])
+
                 scores[scores >= 0.5] = 1
                 scores[scores < 0.5] = 0
                 seg = scores[:, 0, :, :].long()
@@ -213,8 +237,13 @@ def main(seed=2018, epoches=1000):
                 torch.save(model.state_dict(), snapshot_path)
             logging.info('best_epoch:' + str(epoch_final))
             logging.info("{:10s} {:.3f}".format('best_IoU', IoU_final))
+            writer.add_scalar('mIoU', mIoU, epoch)
+            writer.add_scalar('FBIoU', FBIoU, epoch)
+            writer.add_scalars('IoU', dict(zip(data_val1.test, mIoU_d)), epoch)
+            plot_images(writer, inps, pats, tars, preds, epoch=epoch)
         plat_scheduler.step(mIoU)
         logging.info(f"LR: {optimizer.param_groups[0]['lr']}")
+        writer.add_scalar('params/lr', optimizer.param_groups[0]['lr'], epoch)
         model.train()
 
     logging.info(epoch_final)
