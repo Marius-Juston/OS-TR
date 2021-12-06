@@ -41,8 +41,16 @@ def generate_random_masks(textures, img_size=(256, 256), segmentation_regions=5,
     for m in range(segmentation_regions - 1, -1, -1):
         for i in range(np.random.randint(1, 4)):
             r = np.random.uniform(10, 50)
+
             x = np.random.uniform(0, masks_b.shape[0])
             y = np.random.uniform(0, masks_b.shape[1])
+
+            r_x_min = x
+            r_x_min_2 = masks_b.shape[0] - x
+            r_y_min = y
+            r_y_min_2 = masks_b.shape[1] - y
+
+            r = min(r, r_x_min, r_x_min_2, r_y_min, r_y_min_2)
 
             dist_center = np.sqrt((xs - x) ** 2 + (ys - y) ** 2)
 
